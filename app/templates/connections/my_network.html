@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-users me-2"></i>My Network</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Connections -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Your Connections ({{ connections|length }})</h6>
+            </div>
+            <div class="card-body">
+                {% if connections %}
+                    {% for connection in connections %}
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{{ url_for('static', filename=connection.profile_picture_url) if connection.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" 
+                             alt="Profile" class="profile-img me-3">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">
+                                <a href="{{ url_for('profile.view_profile', username=connection.username) }}" 
+                                   class="text-decoration-none">{{ connection.get_full_name() }}</a>
+                            </h6>
+                            <small class="text-muted">{{ connection.headline or 'Professional' }}</small>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('messages.new_message', username=connection.username) }}">
+                                    <i class="fas fa-envelope me-2"></i>Message
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#"
+                                       onclick="if(confirm('Remove connection with {{ connection.get_full_name() }}?')) { 
+                                           fetch('/connections/remove_connection/{{ connection.user_id }}', {method: 'POST'})
+                                           .then(() => location.reload());
+                                       }">
+                                    <i class="fas fa-user-times me-2"></i>Remove Connection
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-users text-muted" style="font-size: 3rem;"></i>
+                    <h6 class="mt-3 text-muted">No connections yet</h6>
+                    <p class="text-muted">Start connecting with colleagues and professionals</p>
+                    <a href="{{ url_for('connections.discover_people') }}" class="btn btn-linkedin">
+                        Find People to Connect
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Requests Received -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Connection Requests ({{ pending_requests|length }})</h6>
+            </div>
+            <div class="card-body">
+                {% if pending_requests %}
+                    {% for user, connection in pending_requests %}
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{{ url_for('static', filename=user.profile_picture_url) if user.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" 
+                             alt="Profile" class="profile-img me-3">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">
+                                <a href="{{ url_for('profile.view_profile', username=user.username) }}" 
+                                   class="text-decoration-none">{{ user.get_full_name() }}</a>
+                            </h6>
+                            <small class="text-muted">{{ user.headline or 'Professional' }}</small>
+                            {% if connection.message %}
+                            <p class="text-muted small mb-1">"{{ connection.message[:50] }}..."</p>
+                            {% endif %}
+                            <div class="mt-2">
+                                <a href="{{ url_for('connections.respond_to_request', connection_id=connection.connection_id, action='accept') }}" 
+                                   class="btn btn-linkedin btn-sm me-1">Accept</a>
+                                <a href="{{ url_for('connections.respond_to_request', connection_id=connection.connection_id, action='reject') }}" 
+                                   class="btn btn-outline-secondary btn-sm">Ignore</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-user-clock text-muted" style="font-size: 3rem;"></i>
+                    <h6 class="mt-3 text-muted">No pending requests</h6>
+                    <p class="text-muted">Connection requests will appear here</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sent Requests -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Sent Requests ({{ sent_requests|length }})</h6>
+            </div>
+            <div class="card-body">
+                {% if sent_requests %}
+                    {% for user, connection in sent_requests %}
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{{ url_for('static', filename=user.profile_picture_url) if user.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" 
+                             alt="Profile" class="profile-img me-3">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">
+                                <a href="{{ url_for('profile.view_profile', username=user.username) }}" 
+                                   class="text-decoration-none">{{ user.get_full_name() }}</a>
+                            </h6>
+                            <small class="text-muted">{{ user.headline or 'Professional' }}</small>
+                            <small class="text-muted d-block">Sent {{ connection.created_at.strftime('%b %d') }}</small>
+                        </div>
+                        <button class="btn btn-outline-danger btn-sm" 
+                                onclick="if(confirm('Cancel request to {{ user.get_full_name() }}?')) { 
+                                    fetch('/connections/cancel_request/{{ connection.connection_id }}', {method: 'POST'})
+                                    .then(() => location.reload());
+                                }">
+                            Cancel
+                        </button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-paper-plane text-muted" style="font-size: 3rem;"></i>
+                    <h6 class="mt-3 text-muted">No sent requests</h6>
+                    <p class="text-muted">Requests you send will appear here</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12 text-center">
+        <a href="{{ url_for('connections.discover_people') }}" class="btn btn-linkedin">
+            <i class="fas fa-search me-2"></i>Discover More People
+        </a>
+    </div>
+</div>
+{% endblock %}

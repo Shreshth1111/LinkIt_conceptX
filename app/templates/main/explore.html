@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-compass me-2"></i>Explore</h4>
+                <p class="text-muted mb-0">Discover posts from the community</p>
+            </div>
+        </div>
+
+        <!-- Posts Feed -->
+        {% for post in posts.items %}
+        <div class="card post-card">
+            <div class="card-body">
+                <!-- Post Header -->
+                <div class="d-flex mb-3">
+                    <img src="{{ url_for('static', filename=post.author.profile_picture_url) if post.author.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" 
+                         alt="Profile" class="profile-img me-3">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-0">
+                            <a href="{{ url_for('profile.view_profile', username=post.author.username) }}" 
+                               class="text-decoration-none">{{ post.author.get_full_name() }}</a>
+                        </h6>
+                        <small class="text-muted">{{ post.author.headline or 'Professional' }}</small>
+                        <br>
+                        <small class="text-muted">{{ moment(post.created_at).fromNow() if moment else post.created_at.strftime('%B %d, %Y at %I:%M %p') }}</small>
+                    </div>
+                </div>
+
+                <!-- Post Content -->
+                <div class="mb-3">
+                    <p class="card-text">{{ post.content }}</p>
+
+                    {% if post.media_url %}
+                        {% if post.post_type == 'image' %}
+                        <img src="{{ url_for('static', filename=post.media_url) }}" 
+                             class="img-fluid rounded mb-2" alt="Post image">
+                        {% elif post.post_type == 'video' %}
+                        <video controls class="w-100 rounded mb-2">
+                            <source src="{{ url_for('static', filename=post.media_url) }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        {% elif post.post_type == 'document' %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-file-alt me-2"></i>
+                            <a href="{{ url_for('static', filename=post.media_url) }}" target="_blank" class="text-decoration-none">
+                                View Document
+                            </a>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                <!-- Post Actions -->
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <button type="button" class="reaction-btn btn" onclick="reactToPost({{ post.post_id }}, 'like')">
+                        <i class="far fa-thumbs-up"></i> {{ post.get_reaction_count('like') }}
+                    </button>
+
+                    <a href="{{ url_for('posts.view_post', id=post.post_id) }}" class="reaction-btn btn">
+                        <i class="far fa-comment"></i> {{ post.get_comment_count() }}
+                    </a>
+
+                    <button type="button" class="reaction-btn btn" onclick="sharePost({{ post.post_id }})">
+                        <i class="fas fa-share"></i> {{ post.get_share_count() }}
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if posts.pages > 1 %}
+        <nav aria-label="Posts pagination">
+            <ul class="pagination justify-content-center">
+                {% if posts.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('main.explore', page=posts.prev_num) }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in posts.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != posts.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('main.explore', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">…</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if posts.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('main.explore', page=posts.next_num) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

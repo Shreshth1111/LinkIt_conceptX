@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-briefcase me-2"></i>Add Work Experience</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('profile.add_work_experience') }}" method="post">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.job_title.label(class="form-label") }}
+                        {{ form.job_title(class="form-control", placeholder="e.g. Software Engineer") }}
+                        {% for error in form.job_title.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.company_name.label(class="form-label") }}
+                        {{ form.company_name(class="form-control", placeholder="e.g. Google Inc.") }}
+                        {% for error in form.company_name.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.employment_type.label(class="form-label") }}
+                            {{ form.employment_type(class="form-select") }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.location_type.label(class="form-label") }}
+                            {{ form.location_type(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.location.label(class="form-label") }}
+                        {{ form.location(class="form-control", placeholder="e.g. San Francisco, CA") }}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.start_date.label(class="form-label") }}
+                            {{ form.start_date(class="form-control") }}
+                            {% for error in form.start_date.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.end_date.label(class="form-label") }}
+                            {{ form.end_date(class="form-control") }}
+                            <div class="form-check mt-2">
+                                {{ form.is_current(class="form-check-input", onclick="toggleEndDate()") }}
+                                {{ form.is_current.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="4", placeholder="Describe your role and achievements...") }}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('profile.view_profile', username=current_user.username) }}" 
+                           class="btn btn-outline-secondary">Cancel</a>
+                        {{ form.submit(class="btn btn-linkedin") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleEndDate() {
+    const endDateInput = document.getElementById('end_date');
+    const isCurrentCheckbox = document.getElementById('is_current');
+
+    if (isCurrentCheckbox.checked) {
+        endDateInput.disabled = true;
+        endDateInput.value = '';
+    } else {
+        endDateInput.disabled = false;
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleEndDate();
+});
+</script>
+{% endblock %}

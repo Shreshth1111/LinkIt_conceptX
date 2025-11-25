@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Create a New Post</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('posts.create_post') }}" method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+
+                    <div class="d-flex mb-3">
+                        <img src="{{ url_for('static', filename=current_user.profile_picture_url) if current_user.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" 
+                             alt="Profile" class="profile-img me-3">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">{{ current_user.get_full_name() }}</h6>
+                            <small class="text-muted">{{ current_user.headline or 'Professional' }}</small>
+                        </div>
+                    </div>
+
+                    <!-- Post Content -->
+                    <div class="mb-3">
+                        {{ form.content.label(class="form-label") }}
+                        {{ form.content(class="form-control", rows="4", placeholder="What's on your mind?") }}
+                        {% for error in form.content.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Post Type -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.post_type.label(class="form-label") }}
+                            {{ form.post_type(class="form-select") }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.visibility.label(class="form-label") }}
+                            {{ form.visibility(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <!-- Media Upload -->
+                    <div class="mb-3">
+                        {{ form.media_file.label(class="form-label") }}
+                        {{ form.media_file(class="form-control") }}
+                        <div class="form-text">Upload images, videos, or documents (Max 16MB)</div>
+                        {% for error in form.media_file.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Link Fields (shown when link type is selected) -->
+                    <div id="link-fields" style="display: none;">
+                        <div class="mb-3">
+                            {{ form.link_url.label(class="form-label") }}
+                            {{ form.link_url(class="form-control", placeholder="https://example.com") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.link_title.label(class="form-label") }}
+                            {{ form.link_title(class="form-control", placeholder="Link title") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.link_description.label(class="form-label") }}
+                            {{ form.link_description(class="form-control", rows="2", placeholder="Link description") }}
+                        </div>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.allow_comments(class="form-check-input") }}
+                            {{ form.allow_comments.label(class="form-check-label") }}
+                        </div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                        {{ form.submit(class="btn btn-linkedin") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show/hide link fields based on post type
+document.getElementById('post_type').addEventListener('change', function() {
+    const linkFields = document.getElementById('link-fields');
+    if (this.value === 'link') {
+        linkFields.style.display = 'block';
+    } else {
+        linkFields.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

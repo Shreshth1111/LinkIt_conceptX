@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-user-edit me-2"></i>Edit Profile</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('profile.update_profile') }}" method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>Current Profile Picture</strong></label>
+                            <div class="text-center mb-3">
+                                <img id="currentProfileImg" src="{{ url_for('static', filename=current_user.profile_picture_url) if current_user.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" alt="Profile" class="profile-img-large">
+                            </div>
+                            {{ form.profile_picture.label(class="form-label") }}
+                            {{ form.profile_picture(class="form-control", onchange="previewProfileImage(event)") }}
+                            <div class="form-text">Upload JPG, PNG, or GIF (max 5MB)</div>
+                            {% for error in form.profile_picture.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>Current Cover Photo</strong></label>
+                            <div class="mb-3 cover-photo" style="height: 120px;">
+                                {% if current_user.cover_photo_url %}
+                                <img id="currentCoverImg" src="{{ url_for('static', filename=current_user.cover_photo_url) }}" alt="Cover photo" style="width:100%; height:100%; object-fit:cover;">
+                                {% else %}
+                                <div id="currentCoverImg" class="w-100 h-100 d-flex align-items-center justify-content-center text-white"><i class="fas fa-image fa-2x"></i></div>
+                                {% endif %}
+                            </div>
+                            {{ form.cover_photo.label(class="form-label") }}
+                            {{ form.cover_photo(class="form-control", onchange="previewCoverImage(event)") }}
+                            <div class="form-text">Upload JPG, PNG, or GIF (max 5MB)</div>
+                            {% for error in form.cover_photo.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Basic Information -->
+                    <h5 class="mb-3"><i class="fas fa-user me-2"></i>Basic Information</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            {{ form.first_name.label(class="form-label") }}
+                            {{ form.first_name(class="form-control", id="first_name") }}
+                            {% for error in form.first_name.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.middle_name.label(class="form-label") }}
+                            {{ form.middle_name(class="form-control") }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.last_name.label(class="form-label") }}
+                            {{ form.last_name(class="form-control", id="last_name") }}
+                            {% for error in form.last_name.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.date_of_birth.label(class="form-label") }}
+                            {{ form.date_of_birth(class="form-control") }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.gender.label(class="form-label") }}
+                            {{ form.gender(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.phone_number.label(class="form-label") }}
+                        {{ form.phone_number(class="form-control", placeholder="+1 (555) 123-4567") }}
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Professional Information -->
+                    <h5 class="mb-3"><i class="fas fa-briefcase me-2"></i>Professional Information</h5>
+                    <div class="mb-3">
+                        {{ form.headline.label(class="form-label") }}
+                        {{ form.headline(class="form-control", placeholder="e.g. Software Engineer at Tech Company") }}
+                        <div class="form-text">This appears below your name on your profile</div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.current_position.label(class="form-label") }}
+                        {{ form.current_position(class="form-control", placeholder="Your current job title") }}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.industry.label(class="form-label") }}
+                            {{ form.industry(class="form-control", placeholder="e.g. Technology") }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.location.label(class="form-label") }}
+                            {{ form.location(class="form-control", placeholder="City, Country") }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.summary.label(class="form-label") }}
+                        {{ form.summary(class="form-control", rows=4, placeholder="Tell us about yourself, your experience, and what makes you unique...") }}
+                        <div class="form-text">This is your professional summary that appears in the About section</div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Privacy Settings -->
+                    <h5 class="mb-3"><i class="fas fa-shield-alt me-2"></i>Privacy Settings</h5>
+                    <div class="mb-3">
+                        {{ form.privacy_level.label(class="form-label") }}
+                        {{ form.privacy_level(class="form-select") }}
+                        <div class="form-text">
+                            <strong>Public:</strong> Anyone can see your profile and posts<br>
+                            <strong>Connections Only:</strong> Only your connections can see your profile<br>
+                            <strong>Private:</strong> Only you can see your profile
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between pt-3">
+                        <a href="{{ url_for('profile.view_profile', username=current_user.username) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-linkedin">
+                            <i class="fas fa-save me-1"></i>{{ form.submit.label.text }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function previewProfileImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('currentProfileImg').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function previewCoverImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const coverImg = document.getElementById('currentCoverImg');
+            coverImg.innerHTML = `<img src="${e.target.result}" alt="Cover photo" style="width: 100%; height: 100%; object-fit: cover;">`;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+document.querySelector('form').addEventListener('submit', function(e) {
+    const firstName = document.getElementById('first_name').value.trim();
+    const lastName = document.getElementById('last_name').value.trim();
+
+    if (!firstName || !lastName) {
+        e.preventDefault();
+        alert('First name and last name are required.');
+        return false;
+    }
+
+    const profilePicture = document.getElementById('profile_picture').files[0];
+    const coverPhoto = document.getElementById('cover_photo').files[0];
+
+    if (profilePicture && profilePicture.size > 5 * 1024 * 1024) {
+        e.preventDefault();
+        alert('Profile picture must be less than 5MB.');
+        return false;
+    }
+
+    if (coverPhoto && coverPhoto.size > 5 * 1024 * 1024) {
+        e.preventDefault();
+        alert('Cover photo must be less than 5MB.');
+        return false;
+    }
+});
+</script>
+{% endblock %}

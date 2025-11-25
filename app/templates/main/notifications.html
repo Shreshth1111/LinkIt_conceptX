@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-bell me-2"></i>Notifications</h4>
+            </div>
+            <div class="card-body">
+                {% if notifications.items %}
+                    {% for notification in notifications.items %}
+                    <div class="d-flex align-items-start mb-3 p-3 {% if not notification.is_read %}bg-light{% endif %} rounded">
+                        {% if notification.related_user %}
+                        <img src="{{ url_for('static', filename=notification.related_user.profile_picture_url) if notification.related_user and notification.related_user.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" 
+                             alt="Profile" class="profile-img me-3">
+                        {% else %}
+                        <div class="profile-img me-3 bg-primary rounded-circle d-flex align-items-center justify-content-center">
+                            <i class="fas fa-bell text-white"></i>
+                        </div>
+                        {% endif %}
+
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">{{ notification.title }}</h6>
+                            <p class="text-muted mb-1">{{ notification.message }}</p>
+                            <small class="text-muted">{{ moment(notification.created_at).fromNow() if moment else notification.created_at.strftime('%B %d, %Y at %I:%M %p') }}</small>
+                        </div>
+
+                        {% if notification.action_url %}
+                        <div>
+                            <a href="{{ notification.action_url }}" class="btn btn-outline-primary btn-sm">View</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <!-- Pagination -->
+                    {% if notifications.pages > 1 %}
+                    <nav aria-label="Notifications pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if notifications.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('main.notifications', page=notifications.prev_num) }}">Previous</a>
+                            </li>
+                            {% endif %}
+
+                            {% for page_num in notifications.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != notifications.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('main.notifications', page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                    {% endif %}
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">…</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if notifications.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('main.notifications', page=notifications.next_num) }}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-bell-slash text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-muted">No notifications yet</h5>
+                    <p class="text-muted">When you get notifications, they'll show up here.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

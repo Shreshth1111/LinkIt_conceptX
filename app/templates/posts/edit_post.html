@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Post</h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('posts.edit_post', id=post.post_id) }}" method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+
+                    <div class="d-flex mb-3">
+                        <img src="{{ url_for('static', filename=current_user.profile_picture_url) if current_user.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" 
+                             alt="Profile" class="profile-img me-3">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">{{ current_user.get_full_name() }}</h6>
+                            <small class="text-muted">{{ current_user.headline or 'Professional' }}</small>
+                        </div>
+                    </div>
+
+                    <!-- Post Content -->
+                    <div class="mb-3">
+                        {{ form.content.label(class="form-label") }}
+                        {{ form.content(class="form-control", rows="4") }}
+                        {% for error in form.content.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Visibility -->
+                    <div class="mb-3">
+                        {{ form.visibility.label(class="form-label") }}
+                        {{ form.visibility(class="form-select") }}
+                    </div>
+
+                    <!-- Current Media -->
+                    {% if post.media_url %}
+                    <div class="mb-3">
+                        <label class="form-label">Current Media:</label>
+                        {% if post.post_type == 'image' %}
+                        <img src="{{ url_for('static', filename=post.media_url) }}" 
+                             class="img-thumbnail d-block" style="max-width: 200px;" alt="Current image">
+                        {% elif post.post_type == 'document' %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-file-alt me-2"></i>
+                            <a href="{{ url_for('static', filename=post.media_url) }}" target="_blank">
+                                Current Document
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- New Media Upload -->
+                    <div class="mb-3">
+                        {{ form.media_file.label(class="form-label") }}
+                        {{ form.media_file(class="form-control") }}
+                        <div class="form-text">Upload new media to replace current (optional)</div>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.allow_comments(class="form-check-input") }}
+                            {{ form.allow_comments.label(class="form-check-label") }}
+                        </div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('posts.view_post', id=post.post_id) }}" class="btn btn-outline-secondary">Cancel</a>
+                        {{ form.submit(class="btn btn-linkedin", value="Update Post") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

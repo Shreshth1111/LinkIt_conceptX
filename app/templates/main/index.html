@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Left Sidebar -->
+    <div class="col-lg-3">
+        <div class="sidebar">
+            <!-- User Profile Card -->
+            <div class="card mb-3 text-center">
+                <img src="{{ url_for('static', filename=current_user.profile_picture_url) if current_user.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" 
+                     alt="Profile" class="profile-img-large mb-3 mx-auto">
+                <h5 class="card-title">{{ current_user.get_full_name() }}</h5>
+                <p class="card-text text-muted">{{ current_user.headline or 'Professional at LinkedIn Clone' }}</p>
+                <a href="{{ url_for('profile.view_profile', username=current_user.username) }}" 
+                   class="btn btn-outline-linkedin btn-sm">View Profile</a>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Quick Actions</h6>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('posts.create_post') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-plus me-2"></i>Create Post
+                    </a>
+                    <a href="{{ url_for('connections.discover_people') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-user-plus me-2"></i>Find People
+                    </a>
+                    <a href="{{ url_for('main.explore') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-compass me-2"></i>Explore
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-lg-6">
+        <!-- Create Post Card -->
+        <div class="card post-card">
+            <div class="card-body d-flex align-items-center">
+                <img src="{{ url_for('static', filename=current_user.profile_picture_url) if current_user.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" 
+                     alt="Profile" class="profile-img me-3">
+                <a href="{{ url_for('posts.create_post') }}" 
+                   class="form-control text-decoration-none text-muted"
+                   style="border-radius: 25px; cursor: pointer;">
+                    Start a post...
+                </a>
+            </div>
+        </div>
+
+        <!-- Posts Feed -->
+        {% for post in posts.items %}
+        <div class="card post-card">
+            <div class="card-body">
+                <!-- Post Header -->
+                <div class="d-flex mb-3">
+                    <img src="{{ url_for('static', filename=post.author.profile_picture_url) if post.author.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" 
+                         alt="Profile" class="profile-img me-3">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-0">
+                            <a href="{{ url_for('profile.view_profile', username=post.author.username) }}" 
+                               class="text-decoration-none">{{ post.author.get_full_name() }}</a>
+                        </h6>
+                        <small class="text-muted">{{ post.author.headline or 'Professional' }}</small>
+                        <br>
+                        <small class="text-muted">{{ moment(post.created_at).fromNow() if moment else post.created_at.strftime('%B %d, %Y at %I:%M %p') }}</small>
+                    </div>
+                    {% if current_user.user_id == post.user_id %}
+                    <div class="dropdown">
+                        <button class="btn btn-sm" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('posts.edit_post', id=post.post_id) }}">Edit</a></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="if(confirmDelete('Are you sure you want to delete this post?')) { document.getElementById('delete-post-{{ post.post_id }}').submit(); }">Delete</a></li>
+                        </ul>
+                    </div>
+                    <form id="delete-post-{{ post.post_id }}" method="POST" action="{{ url_for('posts.delete_post', id=post.post_id) }}" style="display: none;"></form>
+                    {% endif %}
+                </div>
+
+                <!-- Post Content -->
+                <div class="mb-3">
+                    <p class="card-text">{{ post.content }}</p>
+
+                    {% if post.media_url %}
+                        {% if post.post_type == 'image' %}
+                        <img src="{{ url_for('static', filename=post.media_url) }}" 
+                             class="img-fluid rounded mb-2" alt="Post image">
+                        {% elif post.post_type == 'video' %}
+                        <video controls class="w-100 rounded mb-2">
+                            <source src="{{ url_for('static', filename=post.media_url) }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        {% elif post.post_type == 'document' %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-file-alt me-2"></i>
+                            <a href="{{ url_for('static', filename=post.media_url) }}" target="_blank" class="text-decoration-none">View Document</a>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if post.link_url %}
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ post.link_title or 'Link' }}</h6>
+                            {% if post.link_description %}
+                            <p class="card-text">{{ post.link_description }}</p>
+                            {% endif %}
+                            <a href="{{ post.link_url }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                Visit Link <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Post Actions -->
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <button type="button" class="reaction-btn btn" id="reaction-btn-{{ post.post_id }}" onclick="reactToPost({{ post.post_id }}, 'like')">
+                        <i class="far fa-thumbs-up"></i> 
+                        <span id="reaction-count-{{ post.post_id }}">{{ post.get_reaction_count('like') }}</span>
+                    </button>
+
+                    <a href="{{ url_for('posts.view_post', id=post.post_id) }}" class="reaction-btn btn">
+                        <i class="far fa-comment"></i> {{ post.get_comment_count() }}
+                    </a>
+
+                    <button type="button" class="reaction-btn btn" onclick="sharePost({{ post.post_id }})">
+                        <i class="fas fa-share"></i> 
+                        <span id="share-count-{{ post.post_id }}">{{ post.get_share_count() }}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if posts.pages > 1 %}
+        <nav aria-label="Posts pagination">
+            <ul class="pagination justify-content-center">
+                {% if posts.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('main.index', page=posts.prev_num) }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in posts.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != posts.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('main.index', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">…</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if posts.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('main.index', page=posts.next_num) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="col-lg-3">
+        <div class="sidebar">
+            <!-- People You May Know -->
+            {% if suggestions %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">People you may know</h6>
+                </div>
+                <div class="card-body">
+                    {% for user in suggestions %}
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{{ url_for('static', filename=user.profile_picture_url) if user.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" alt="Profile" class="profile-img me-3">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">
+                                <a href="{{ url_for('profile.view_profile', username=user.username) }}" class="text-decoration-none">{{ user.get_full_name() }}</a>
+                            </h6>
+                            <small class="text-muted">{{ user.headline or 'Professional' }}</small>
+                        </div>
+                        <a href="{{ url_for('connections.send_connection_request', user_id=user.user_id) }}" class="btn btn-outline-linkedin btn-sm">Connect</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="card-footer text-center">
+                    <a href="{{ url_for('connections.discover_people') }}" class="text-decoration-none">See more suggestions</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

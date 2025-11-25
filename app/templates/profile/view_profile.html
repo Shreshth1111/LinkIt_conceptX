@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Profile Header Card -->
+        <div class="card mb-4 position-relative overflow-hidden">
+            <!-- Cover Photo -->
+            <div class="cover-photo" style="height:220px;">
+                {% if user.cover_photo_url %}
+                <img src="{{ url_for('static', filename=user.cover_photo_url) }}" alt="Cover photo" style="object-fit:cover;width:100%;height:220px;">
+                {% endif %}
+            </div>
+            <!-- Profile Image Overlap -->
+            <img src="{{ url_for('static', filename=user.profile_picture_url) if user.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}"
+                 alt="{{ user.get_full_name() }}"
+                 class="rounded-circle border border-3 border-white shadow"
+                 style="width:120px;height:120px;object-fit:cover;position:absolute;left:32px;top:140px;z-index:3;">
+            <div class="card-body pt-5 mt-2" style="padding-left:170px;">
+                <h2 class="mb-1">{{ user.get_full_name() }}</h2>
+                {% if user.headline %}
+                <div class="text-muted mb-1">{{ user.headline }}</div>
+                {% endif %}
+                {% if user.current_position %}
+                <div class="text-muted mb-1">{{ user.current_position }}</div>
+                {% endif %}
+                {% if user.location %}
+                <div class="text-muted mb-2"><i class="fas fa-map-marker-alt me-1"></i>{{ user.location }}</div>
+                {% endif %}
+                <div class="mb-3 mt-2">
+                    <span class="fw-bold text-primary">{{ connection_count }}</span>
+                    <span class="text-muted">connections</span>
+                </div>
+                {% if current_user.is_authenticated %}
+                {% if current_user.user_id == user.user_id %}
+                <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-outline-linkedin me-2">
+                    <i class="fas fa-edit me-1"></i>Edit Profile
+                </a>
+                {% else %}
+                {% if connection_status == 'accepted' %}
+                <button class="btn btn-success me-2" disabled>
+                    <i class="fas fa-check me-1"></i>Connected
+                </button>
+                <button class="btn btn-outline-danger" onclick="removeConnection({{ user.user_id }})">
+                    Remove Connection
+                </button>
+                {% elif connection_status == 'pending' %}
+                <button class="btn btn-warning me-2" disabled>
+                    <i class="fas fa-clock me-1"></i>Pending
+                </button>
+                {% else %}
+                <a href="{{ url_for('connections.send_connection_request', user_id=user.user_id) }}" class="btn btn-linkedin me-2">
+                    <i class="fas fa-user-plus me-1"></i>Connect
+                </a>
+                {% endif %}
+                <a href="{{ url_for('messages.new_message', username=user.username) }}" class="btn btn-outline-linkedin">
+                    <i class="fas fa-envelope me-1"></i>Message
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- About Section -->
+        {% if user.summary %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>About</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ user.summary }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Experience Section -->
+        {% if work_experiences %}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>Experience</h5>
+                {% if current_user.user_id == user.user_id %}
+                <a href="{{ url_for('profile.add_work_experience') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-plus"></i>
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% for exp in work_experiences %}
+                <div class="d-flex mb-3{% if not loop.last %} border-bottom pb-3{% endif %}">
+                    <div class="me-3">
+                        <div class="bg-primary rounded d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                            <i class="fas fa-building text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">{{ exp.job_title }}</h6>
+                        <p class="text-muted mb-1">{{ exp.company_name }}</p>
+                        <small class="text-muted">{{ exp.start_date.strftime('%b %Y') }} - {% if exp.is_current %}Present{% else %}{{ exp.end_date.strftime('%b %Y') if exp.end_date }}{% endif %} • {{ exp.employment_type }}</small>
+                        {% if exp.location %}<br><small class="text-muted">{{ exp.location }}</small>{% endif %}
+                        {% if exp.description %}<p class="mt-2">{{ exp.description }}</p>{% endif %}
+                        {% if current_user.user_id == user.user_id %}
+                        <div class="mt-2">
+                            <a href="{{ url_for('profile.edit_work_experience', experience_id=exp.experience_id) }}" class="btn btn-sm btn-outline-primary me-1"><i class="fas fa-edit"></i> Edit</a>
+                            <button class="btn btn-sm btn-outline-danger" onclick="if(confirm('Delete this experience?')) { fetch('{{ url_for('profile.delete_work_experience', experience_id=exp.experience_id) }}', {method: 'POST'}).then(() => location.reload()); }"><i class="fas fa-trash"></i> Delete</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Education Section -->
+        {% if education %}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Education</h5>
+                {% if current_user.user_id == user.user_id %}
+                <a href="{{ url_for('profile.add_education') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-plus"></i>
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% for edu in education %}
+                <div class="d-flex mb-3{% if not loop.last %} border-bottom pb-3{% endif %}">
+                    <div class="me-3">
+                        <div class="bg-success rounded d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                            <i class="fas fa-graduation-cap text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">{{ edu.institution_name }}</h6>
+                        {% if edu.degree_type or edu.field_of_study %}
+                        <p class="text-muted mb-1">{% if edu.degree_type %}{{ edu.degree_type }}{% endif %}{% if edu.field_of_study %}{% if edu.degree_type %} in {% endif %}{{ edu.field_of_study }}{% endif %}</p>
+                        {% endif %}
+                        {% if edu.start_date or edu.end_date %}
+                        <small class="text-muted">{% if edu.start_date %}{{ edu.start_date.strftime('%Y') }}{% endif %} {% if edu.end_date %} - {{ edu.end_date.strftime('%Y') }}{% endif %}</small>
+                        {% endif %}
+                        {% if edu.grade %}<br><small class="text-muted">Grade: {{ edu.grade }}</small>{% endif %}
+                        {% if edu.description %}<p class="mt-2">{{ edu.description }}</p>{% endif %}
+                        {% if current_user.user_id == user.user_id %}
+                        <div class="mt-2">
+                            <a href="{{ url_for('profile.edit_education', education_id=edu.education_id) }}" class="btn btn-sm btn-outline-primary me-1"><i class="fas fa-edit"></i> Edit</a>
+                            <button class="btn btn-sm btn-outline-danger" onclick="if(confirm('Delete this education?')) { fetch('{{ url_for('profile.delete_education', education_id=edu.education_id) }}', {method: 'POST'}).then(() => location.reload()); }"><i class="fas fa-trash"></i> Delete</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Skills Section -->
+        {% if skills %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Skills</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    {% for skill in skills %}
+                    <span class="badge bg-primary">{{ skill.skill_name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Posts Section -->
+        {% if posts.items %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-newspaper me-2"></i>Recent Posts</h5>
+            </div>
+            <div class="card-body">
+                {% for post in posts.items %}
+                <div class="border-bottom mb-3 pb-3{% if loop.last %} border-0 mb-0 pb-0{% endif %}">
+                    <div class="mb-2">
+                        <small class="text-muted">{{ post.created_at.strftime('%B %d, %Y') }}</small>
+                    </div>
+                    <p class="mb-2">{{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted">{{ post.get_reaction_count() }} reactions • {{ post.get_comment_count() }} comments</small>
+                        </div>
+                        <a href="{{ url_for('posts.view_post', id=post.post_id) }}" class="btn btn-outline-primary btn-sm">View Post</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="col-lg-4">
+        <!-- Contact Info -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-address-card me-2"></i>Contact Information</h6>
+            </div>
+            <div class="card-body">
+                {% if user.email and (current_user.user_id == user.user_id or user.privacy_level == 'Public') %}
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-envelope text-muted me-2"></i>
+                    <a href="mailto:{{ user.email }}" class="text-decoration-none">{{ user.email }}</a>
+                </div>
+                {% endif %}
+                {% if user.phone_number and (current_user.user_id == user.user_id or user.privacy_level == 'Public') %}
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-phone text-muted me-2"></i>
+                    <span>{{ user.phone_number }}</span>
+                </div>
+                {% endif %}
+                {% if user.industry %}
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-industry text-muted me-2"></i>
+                    <span>{{ user.industry }}</span>
+                </div>
+                {% endif %}
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-calendar text-muted me-2"></i>
+                    <span>Joined {{ user.created_at.strftime('%B %Y') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function removeConnection(userId) {
+    if (confirm('Are you sure you want to remove this connection?')) {
+        fetch(`/connections/remove_connection/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <!-- Conversation Header -->
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    {% if other_participants %}
+                    <img src="{{ url_for('static', filename=other_participants[0].profile_picture_url) if other_participants[0].profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" alt="Profile" class="profile-img me-3">
+                    {% endif %}
+                    <div>
+                        <h6 class="mb-0">
+                            {% if conversation.title %}
+                                {{ conversation.title }}
+                            {% elif other_participants %}
+                                {% for p in other_participants %}
+                                    {{ p.get_full_name() }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                Group Chat
+                            {% endif %}
+                        </h6>
+                        {% if other_participants|length == 1 %}
+                        <small class="text-muted">{{ other_participants[0].headline or 'Professional' }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <a href="{{ url_for('messages.inbox') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Messages
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div class="card-body" style="height: 400px; overflow-y: auto;" id="messagesContainer">
+                <div id="messages-list">
+                    {% for message in messages.items %}
+                    <div class="d-flex mb-3 {% if message.sender_id == current_user.user_id %}justify-content-end{% endif %}">
+                        {% if message.sender_id != current_user.user_id %}
+                        <img src="{{ url_for('static', filename=message.sender.profile_picture_url) if message.sender.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" alt="Profile" class="profile-img me-2">
+                        {% endif %}
+                        <div class="message-bubble rounded p-3 {% if message.sender_id == current_user.user_id %}sent{% else %}received{% endif %}" data-message-id="{{ message.message_id }}">
+                            {% if message.sender_id != current_user.user_id %}
+                            <h6 class="mb-1">{{ message.sender.get_full_name() }}</h6>
+                            {% endif %}
+                            {% if message.message_type == 'text' %}
+                            <p class="mb-1 message-content">{{ message.content }}</p>
+                            {% elif message.message_type == 'image' %}
+                            <img src="{{ url_for('static', filename=message.media_url) }}" class="img-fluid rounded mb-2" alt="Image" style="max-width: 200px;">
+                            {% if message.content %}
+                            <p class="mb-1">{{ message.content }}</p>
+                            {% endif %}
+                            {% elif message.message_type == 'file' %}
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-file-alt me-2"></i>
+                                <a href="{{ url_for('static', filename=message.media_url) }}" target="_blank" class="text-decoration-none">
+                                    {{ message.file_name or 'File' }}
+                                </a>
+                            </div>
+                            {% if message.content %}
+                            <p class="mb-1">{{ message.content }}</p>
+                            {% endif %}
+                            {% endif %}
+                            <small class="text-muted d-block">{{ message.created_at.strftime('%m/%d %I:%M %p') }}</small>
+                            {% if message.sender_id == current_user.user_id %}
+                            <button class="btn btn-sm btn-link text-primary px-0" onclick="editMessage('{{ message.message_id }}', this);">Edit</button>
+                            {% endif %}
+                        </div>
+                        {% if message.sender_id == current_user.user_id %}
+                        <img src="{{ url_for('static', filename=current_user.profile_picture_url) if current_user.profile_picture_url else url_for('static', filename='img/default-avatar.png') }}" alt="Profile" class="profile-img ms-2">
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Message Input -->
+            <div class="card-footer">
+                <form id="messageForm" enctype="multipart/form-data">
+                    {{ form.hidden_tag() if form }}
+                    <div class="input-group">
+                        <input type="text" id="messageInput" class="form-control" placeholder="Type your message..." maxlength="2000" autocomplete="off">
+                        <input type="file" id="mediaInput" name="media_file" class="d-none" accept="image/*,.pdf,.doc,.docx" onchange="uploadMedia()">
+                        <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('mediaInput').click();">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button type="submit" class="btn btn-linkedin">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div id="mediaPreview" class="mt-2"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let lastMessageId = -1;
+
+function renderMessages(messages) {
+    const messagesList = document.getElementById('messages-list');
+    messagesList.innerHTML = "";
+    for (const msg of messages) {
+        let html = `<div class="d-flex mb-3 ${msg.self ? 'justify-content-end' : ''}">`;
+        if (!msg.self) html += `<img src="${msg.avatar ? '/static/'+msg.avatar : '/static/img/default-avatar.png'}" class="profile-img me-2">`;
+        html += `<div class="message-bubble rounded p-3 ${msg.self ? 'sent' : 'received'}" data-message-id="${msg.id}">`;
+        if (!msg.self) html += `<h6 class="mb-1">${msg.sender_name}</h6>`;
+        html += `<p class="mb-1 message-content">${msg.content}</p>`;
+        html += `<small class="text-muted d-block">${msg.created}</small>`;
+        if (msg.self) html += `<button class="btn btn-sm btn-link text-primary px-0" onclick="editMessage('${msg.id}', this);">Edit</button>`;
+        html += `</div>`;
+        if (msg.self) html += `<img src="${msg.avatar ? '/static/'+msg.avatar : '/static/img/default-avatar.png'}" class="profile-img ms-2">`;
+        html += `</div>`;
+        messagesList.innerHTML += html;
+        if (msg.id > lastMessageId) lastMessageId = msg.id;
+    }
+    scrollToBottom();
+}
+
+function scrollToBottom() {
+    const container = document.getElementById('messagesContainer');
+    if(container) container.scrollTop = container.scrollHeight;
+}
+
+function fetchMessages() {
+    fetch(`/messages/api/get_messages/${conversationId}`)
+        .then(response => response.json())
+        .then(data => {
+            renderMessages(data.messages);
+        });
+}
+
+const conversationId = {{ conversation.conversation_id }};
+setInterval(fetchMessages, 2500);
+window.onload = fetchMessages;
+
+document.getElementById('messageForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    this.querySelector('button[type=submit]').disabled = true;
+
+    const messageInput = document.getElementById('messageInput');
+    const content = messageInput.value.trim();
+    const mediaInput = document.getElementById('mediaInput');
+    const file = mediaInput.files[0];
+
+    if (file) {
+        // File upload
+        let formData = new FormData();
+        formData.append('conversation_id', conversationId);
+        formData.append('content', content);
+        formData.append('media_file', file);
+
+        fetch('/messages/send_message', {
+            method: 'POST',
+            body: formData
+        }).then(response => {
+            this.querySelector('button[type=submit]').disabled = false;
+            messageInput.value = '';
+            mediaInput.value = '';
+            document.getElementById('mediaPreview').innerHTML = '';
+            setTimeout(fetchMessages, 100); // quick update
+        });
+        return;
+    }
+
+    // Plain text AJAX send
+    fetch('/messages/api/send_quick_message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_id: conversationId, content: content })
+    })
+    .then(response => response.json())
+    .then(data => {
+        this.querySelector('button[type=submit]').disabled = false;
+        if (data.status === 'success') {
+            messageInput.value = '';
+            setTimeout(fetchMessages, 100);
+        }
+    });
+});
+
+function uploadMedia() {
+    const mediaInput = document.getElementById('mediaInput');
+    const mediaPreview = document.getElementById('mediaPreview');
+    const file = mediaInput.files[0];
+    if (file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            if (/image/.test(file.type))
+                mediaPreview.innerHTML = '<img src="' + e.target.result + '" class="img-fluid rounded" alt="Preview" style="max-width:100px;">';
+            else
+                mediaPreview.innerHTML = '<div>Selected: ' + file.name + '</div>';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// Edit Message modal prompt
+function editMessage(messageId, btn) {
+    const oldContent = btn.closest('.message-bubble').querySelector('.message-content').textContent;
+    const newContent = prompt("Edit your message:", oldContent);
+    if (newContent != null && newContent !== oldContent) {
+        fetch('/messages/api/edit_message', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({message_id: messageId, content: newContent})
+        })
+        .then(r=>r.json())
+        .then(data=>{
+            if(data.status === "success") {
+                btn.closest('.message-bubble').querySelector('.message-content').textContent = newContent;
+            } else {
+                alert("Failed to edit message.");
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
